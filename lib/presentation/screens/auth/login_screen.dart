@@ -7,71 +7,79 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Buscamos el controlador que ya creaste y comiteaste
-    final authController = Get.find<AuthController>();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+    final AuthController authController = Get.find<AuthController>();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      body: Padding(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(25.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.visibility, size: 80, color: Colors.red),
-                const SizedBox(height: 20),
-                const Text(
-                  'Spider-Sense',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const Text('Asistente para discapacidad visual'),
-                const SizedBox(height: 40),
-                
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo Electrónico',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                
-                Obx(() => SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: authController.isLoading.value 
-                      ? null 
-                      : () => authController.login(
-                          emailController.text.trim(), 
-                          passwordController.text.trim()
-                        ),
-                    child: authController.isLoading.value 
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Iniciar Sesión', style: TextStyle(fontSize: 18)),
-                  ),
-                )),
-              ],
+        child: Column(
+          children: [
+            const SizedBox(height: 80),
+            const Icon(Icons.visibility, size: 100, color: Colors.red),
+            const SizedBox(height: 10),
+            Text(
+              'Spider-Sense',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+              ),
             ),
-          ),
+            const SizedBox(height: 50),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: 'email_label'.tr,
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'password_label'.tr,
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 30),
+            Obx(() => authController.isLoading.value
+                ? const CircularProgressIndicator(color: Colors.red)
+                : Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            authController.login(
+                              emailController.text.trim(),
+                              passwordController.text.trim(),
+                            );
+                          },
+                          child: Text('login_button'.tr),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextButton(
+                        onPressed: () => Get.toNamed('/register'),
+                        child: Text(
+                          'go_to_register'.tr,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  )),
+          ],
         ),
       ),
     );
