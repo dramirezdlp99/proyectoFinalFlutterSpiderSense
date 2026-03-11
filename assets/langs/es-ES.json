@@ -1,13 +1,14 @@
 {
-  "app_name": "Spider-Sense",
-  "login_title": "Bienvenido",
+  "login_success_title": "Éxito",
+  "login_success_msg": "Bienvenido a Spider-Sense",
+  "login_error_msg": "No se pudo iniciar sesión",
+  "error_title": "Error",
+  "register_title": "Registro",
+  "create_account_subtitle": "Únete a nuestra comunidad",
   "email_label": "Correo Electrónico",
   "password_label": "Contraseña",
-  "login_button": "Iniciar Sesión",
-  "register_link": "Crear una cuenta",
-  "dark_mode": "Modo Oscuro",
-  "light_mode": "Modo Claro",
-  "language_change": "Cambiar a Inglés",
-  "object_detected": "Objeto detectado",
-  "danger_alert": "Peligro al frente"
+  "register_button": "Crear Cuenta",
+  "reg_success_title": "Cuenta Creada",
+  "reg_success_msg": "Por favor revisa tu correo para verificar",
+  "reg_error_msg": "Fallo en el registro"
 }

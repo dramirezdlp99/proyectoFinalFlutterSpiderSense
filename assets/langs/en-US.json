@@ -1,13 +1,14 @@
 {
-  "app_name": "Spider-Sense",
-  "login_title": "Welcome Back",
-  "email_label": "Email",
+  "login_success_title": "Success",
+  "login_success_msg": "Welcome to Spider-Sense",
+  "login_error_msg": "Could not sign in",
+  "error_title": "Error",
+  "register_title": "Register",
+  "create_account_subtitle": "Join our community",
+  "email_label": "Email Address",
   "password_label": "Password",
-  "login_button": "Sign In",
-  "register_link": "Create an account",
-  "dark_mode": "Dark Mode",
-  "light_mode": "Light Mode",
-  "language_change": "Switch to Spanish",
-  "object_detected": "Object detected",
-  "danger_alert": "Danger ahead"
+  "register_button": "Create Account",
+  "reg_success_title": "Account Created",
+  "reg_success_msg": "Please check your email to verify",
+  "reg_error_msg": "Registration failed"
 }
