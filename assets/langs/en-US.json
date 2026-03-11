@@ -1,14 +1,10 @@
 {
-  "login_success_title": "Success",
-  "login_success_msg": "Welcome to Spider-Sense",
-  "login_error_msg": "Could not sign in",
-  "error_title": "Error",
-  "register_title": "Register",
-  "create_account_subtitle": "Join our community",
-  "email_label": "Email Address",
+  "login_subtitle": "Visual disability assistant",
+  "email_label": "Email",
   "password_label": "Password",
-  "register_button": "Create Account",
-  "reg_success_title": "Account Created",
-  "reg_success_msg": "Please check your email to verify",
-  "reg_error_msg": "Registration failed"
+  "login_button": "Sign In",
+  "go_to_register": "Don't have an account? Create one",
+  "register_title": "Create Account",
+  "create_account_subtitle": "Join our community",
+  "register_button": "Register Now"
 }
