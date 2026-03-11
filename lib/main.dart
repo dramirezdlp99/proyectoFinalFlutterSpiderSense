@@ -7,8 +7,8 @@ import 'core/utils/constants.dart';
 import 'presentation/controllers/auth_controller.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
+import 'presentation/screens/home/home_screen.dart'; // Importante añadir esto
 
-// SERVICIO DE TRADUCCIÓN INTEGRADO
 class TranslationService extends Translations {
   static Map<String, Map<String, String>> translations = {};
 
@@ -33,21 +33,13 @@ class TranslationService extends Translations {
 }
 
 void main() async {
-  // 1. Asegura la inicialización de Flutter
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. Inicializar traducciones desde los JSON
   await TranslationService.init();
-
-  // 3. Inicialización de Supabase con tus constantes reales
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
   );
-
-  // 4. Inyectamos el controlador de GetX para que esté disponible en toda la app
   Get.put(AuthController());
-
   runApp(const SpiderSenseApp());
 }
 
@@ -59,13 +51,9 @@ class SpiderSenseApp extends StatelessWidget {
     return GetMaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      
-      // CONFIGURACIÓN DE IDIOMAS (i18n)
       translations: TranslationService(), 
       locale: Get.deviceLocale, 
       fallbackLocale: const Locale('en', 'US'),
-
-      // CONFIGURACIÓN DE TEMAS (Light/Dark)
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -77,13 +65,12 @@ class SpiderSenseApp extends StatelessWidget {
         colorSchemeSeed: Colors.red,
       ),
       themeMode: ThemeMode.system,
-
-      // RUTAS DE LA APLICACIÓN
       initialRoute: '/',
       getPages: [
         GetPage(name: '/', page: () => const SplashScreen()),
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/register', page: () => RegisterScreen()),
+        GetPage(name: '/home', page: () => const HomeScreen()), // Nueva ruta
       ],
     );
   }
@@ -91,7 +78,6 @@ class SpiderSenseApp extends StatelessWidget {
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -100,12 +86,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Lógica de navegación: Espera 3 segundos y cambia a la pantalla de Login usando rutas de GetX
     Future.delayed(const Duration(seconds: 3), () {
       Get.offNamed('/login');
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,11 +101,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 20),
             const CircularProgressIndicator(color: Colors.red),
             const SizedBox(height: 20),
-            Text(
-              AppConstants.appName,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            // Usamos .tr para que "splash_init" se busque en los JSON
+            Text(AppConstants.appName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             Text('splash_init'.tr.isEmpty ? 'Initializing AI System...' : 'splash_init'.tr),
           ],
         ),
