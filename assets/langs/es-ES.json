@@ -1,10 +1,23 @@
 {
+  "splash_init": "Inicializando Sistema IA...",
   "login_subtitle": "Asistente para discapacidad visual",
   "email_label": "Correo Electrónico",
   "password_label": "Contraseña",
   "login_button": "Iniciar Sesión",
+  "login_success_title": "Éxito",
+  "login_success_msg": "Bienvenido a Spider-Sense",
+  "login_error_msg": "No se pudo iniciar sesión",
   "go_to_register": "¿No tienes cuenta? Crea una",
   "register_title": "Crear Cuenta",
   "create_account_subtitle": "Únete a nuestra comunidad",
-  "register_button": "Registrarse"
+  "register_button": "Registrarse",
+  "reg_success_title": "Cuenta Creada",
+  "reg_success_msg": "Por favor revisa tu correo para verificar",
+  "reg_error_msg": "Fallo en el registro",
+  "error_title": "Error",
+  "home_title": "Inicio Spider-Sense",
+  "welcome_user": "Bienvenido",
+  "ai_object_detection": "Detección de Objetos",
+  "ai_text_reader": "Lector de Texto",
+  "logout": "Cerrar Sesión"
 }
