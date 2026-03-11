@@ -1,15 +1,21 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    // Debe coincidir con el nombre de paquete que configuramos
-    namespace = "com.ramirez.spidersense" 
+    namespace = "com.example.spidersense"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+
+    defaultConfig {
+        applicationId = "com.example.spidersense"
+        // Cambiamos esto a 23 manualmente para evitar el error y cumplir con la cámara
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -17,25 +23,12 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
-    defaultConfig {
-        // Tu Application ID único
-        applicationId = "com.ramirez.spidersense"
-        
-        // CAMBIO CRÍTICO: La IA y la Cámara requieren mínimo versión 23 (Android 6.0)
-        // para procesar imágenes en tiempo real y manejar permisos modernos.
-        minSdk = 23 
-        
-        targetSdk = flutter.targetSdk
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        // Corregimos el error del jvmTarget usando el formato moderno
+        freeCompilerArgs += "-Xjvm-default=all"
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
