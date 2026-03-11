@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/utils/constants.dart';
+import 'presentation/controllers/auth_controller.dart';
+import 'presentation/screens/auth/login_screen.dart';
 
 void main() async {
-  // Asegura la inicialización de Flutter antes de usar plugins
+  // 1. Asegura la inicialización de Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicialización de Supabase con las constantes del archivo constants.dart
+  // 2. Inicialización de Supabase con tus constantes reales
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
   );
+
+  // 3. Inyectamos el controlador de GetX para que esté disponible en toda la app
+  Get.put(AuthController());
 
   runApp(const SpiderSenseApp());
 }
@@ -25,7 +30,7 @@ class SpiderSenseApp extends StatelessWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       
-      // Configuración de temas Light/Dark requerida por el caso de estudio
+      // Configuración de temas Light/Dark
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -36,15 +41,30 @@ class SpiderSenseApp extends StatelessWidget {
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.red,
       ),
-      themeMode: ThemeMode.system, // Cambia según la configuración del sistema
+      themeMode: ThemeMode.system,
 
+      // Arrancamos con el Splash, el cual nos llevará al Login
       home: const SplashScreen(),
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Lógica de navegación: Espera 3 segundos y cambia a la pantalla de Login
+    Future.delayed(const Duration(seconds: 3), () {
+      Get.off(() => const LoginScreen());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
