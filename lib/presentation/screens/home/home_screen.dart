@@ -6,17 +6,14 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('home_title'.tr),
         actions: [
-          // Botón EN/ES
           TextButton(
             onPressed: () {
-              Locale current = Get.locale!;
-              Get.updateLocale(current.languageCode == 'es' 
+              Locale? current = Get.locale;
+              Get.updateLocale(current?.languageCode == 'es' 
                 ? const Locale('en', 'US') 
                 : const Locale('es', 'ES'));
             },
@@ -25,7 +22,6 @@ class HomeScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
-          // Botón Sol/Luna
           IconButton(
             icon: Icon(
               Get.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
