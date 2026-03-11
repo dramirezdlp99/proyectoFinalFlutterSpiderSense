@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/utils/constants.dart';
@@ -6,17 +8,44 @@ import 'presentation/controllers/auth_controller.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
 
+// SERVICIO DE TRADUCCIÓN INTEGRADO
+class TranslationService extends Translations {
+  static Map<String, Map<String, String>> translations = {};
+
+  static Future<void> init() async {
+    translations['en_US'] = await _loadJson('en-US');
+    translations['es_ES'] = await _loadJson('es-ES');
+  }
+
+  static Future<Map<String, String>> _loadJson(String code) async {
+    try {
+      final String response = await rootBundle.loadString('assets/langs/$code.json');
+      final Map<String, dynamic> data = json.decode(response);
+      return data.map((key, value) => MapEntry(key, value.toString()));
+    } catch (e) {
+      debugPrint("Error loading translation $code: $e");
+      return {};
+    }
+  }
+
+  @override
+  Map<String, Map<String, String>> get keys => translations;
+}
+
 void main() async {
   // 1. Asegura la inicialización de Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Inicialización de Supabase
+  // 2. Inicializar traducciones desde los JSON
+  await TranslationService.init();
+
+  // 3. Inicialización de Supabase con tus constantes reales
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
   );
 
-  // 3. Inyectamos el controlador de GetX
+  // 4. Inyectamos el controlador de GetX para que esté disponible en toda la app
   Get.put(AuthController());
 
   runApp(const SpiderSenseApp());
@@ -32,10 +61,9 @@ class SpiderSenseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       
       // CONFIGURACIÓN DE IDIOMAS (i18n)
-      // Nota: Asegúrate de que tus archivos JSON en assets/langs/ estén cargados en el pubspec.yaml
-      translations: AppTranslations(), // Clase que crearemos a continuación
-      locale: Get.deviceLocale, // Detecta el idioma del celular automáticamente
-      fallbackLocale: const Locale('en', 'US'), // Idioma por defecto si falla la detección
+      translations: TranslationService(), 
+      locale: Get.deviceLocale, 
+      fallbackLocale: const Locale('en', 'US'),
 
       // CONFIGURACIÓN DE TEMAS (Light/Dark)
       theme: ThemeData(
@@ -61,21 +89,6 @@ class SpiderSenseApp extends StatelessWidget {
   }
 }
 
-// LÓGICA DE TRADUCCIONES PARA GETX
-class AppTranslations extends Translations {
-  @override
-  Map<String, Map<String, String>> get keys => {
-    // Estas llaves deben coincidir con las que usamos en los controladores y pantallas (.tr)
-    'en_US': {
-      'splash_init': 'Initializing AI System...',
-      // Aquí puedes agregar más si no usas los JSON externos todavía
-    },
-    'es_ES': {
-      'splash_init': 'Inicializando Sistema IA...',
-    }
-  };
-}
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -87,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navegación usando el sistema de rutas de GetX
+    // Lógica de navegación: Espera 3 segundos y cambia a la pantalla de Login usando rutas de GetX
     Future.delayed(const Duration(seconds: 3), () {
       Get.offNamed('/login');
     });
@@ -108,7 +121,8 @@ class _SplashScreenState extends State<SplashScreen> {
               AppConstants.appName,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text('splash_init'.tr), // Texto traducido
+            // Usamos .tr para que "splash_init" se busque en los JSON
+            Text('splash_init'.tr.isEmpty ? 'Initializing AI System...' : 'splash_init'.tr),
           ],
         ),
       ),
