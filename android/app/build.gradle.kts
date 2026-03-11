@@ -5,14 +5,18 @@ plugins {
 }
 
 android {
-    namespace = "com.example.spidersense"
-    compileSdk = flutter.compileSdkVersion
+    // Sincronizado con tu MainActivity.kt
+    namespace = "com.ramirez.spidersense.spidersense" 
+    compileSdk = 36 
 
     defaultConfig {
-        applicationId = "com.example.spidersense"
-        // Cambiamos esto a 23 manualmente para evitar el error y cumplir con la cámara
-        minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        // Este ID debe ser idéntico al namespace para evitar el error de ClassNotFound
+        applicationId = "com.ramirez.spidersense.spidersense"
+        
+        // Usamos el número directo para asegurar compatibilidad con la cámara
+        minSdk = flutter.minSdkVersion 
+        targetSdk = 36
+        
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -23,14 +27,7 @@ android {
     }
 
     kotlinOptions {
-        // Corregimos el error del jvmTarget usando el formato moderno
-        freeCompilerArgs += "-Xjvm-default=all"
-    }
-
-    buildTypes {
-        getByName("release") {
-            signingConfig = signingConfigs.getByName("debug")
-        }
+        jvmTarget = "17"
     }
 }
 
