@@ -1,0 +1,13 @@
+{
+  "app_name": "Spider-Sense",
+  "login_title": "Welcome Back",
+  "email_label": "Email",
+  "password_label": "Password",
+  "login_button": "Sign In",
+  "register_link": "Create an account",
+  "dark_mode": "Dark Mode",
+  "light_mode": "Light Mode",
+  "language_change": "Switch to Spanish",
+  "object_detected": "Object detected",
+  "danger_alert": "Danger ahead"
+}

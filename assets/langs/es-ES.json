@@ -1,0 +1,13 @@
+{
+  "app_name": "Spider-Sense",
+  "login_title": "Bienvenido",
+  "email_label": "Correo Electrónico",
+  "password_label": "Contraseña",
+  "login_button": "Iniciar Sesión",
+  "register_link": "Crear una cuenta",
+  "dark_mode": "Modo Oscuro",
+  "light_mode": "Modo Claro",
+  "language_change": "Cambiar a Inglés",
+  "object_detected": "Objeto detectado",
+  "danger_alert": "Peligro al frente"
+}
