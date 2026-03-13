@@ -8,8 +8,6 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthController authController = Get.find<AuthController>();
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -30,7 +28,8 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 50),
             TextField(
-              controller: emailController,
+              // Conectamos directamente al observable del controlador
+              onChanged: (value) => authController.email.value = value,
               decoration: InputDecoration(
                 labelText: 'email_label'.tr,
                 prefixIcon: const Icon(Icons.email_outlined),
@@ -39,7 +38,8 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             TextField(
-              controller: passwordController,
+              // Conectamos directamente al observable del controlador
+              onChanged: (value) => authController.password.value = value,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'password_label'.tr,
@@ -60,12 +60,7 @@ class LoginScreen extends StatelessWidget {
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            authController.login(
-                              emailController.text.trim(),
-                              passwordController.text.trim(),
-                            );
-                          },
+                          onPressed: () => authController.login(), // Sin argumentos
                           child: Text('login_button'.tr),
                         ),
                       ),

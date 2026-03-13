@@ -3,14 +3,11 @@ import 'package:get/get.dart';
 import '../../controllers/auth_controller.dart';
 
 class RegisterScreen extends StatelessWidget {
-  final AuthController _authController = Get.find<AuthController>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  RegisterScreen({super.key});
+  const RegisterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final AuthController authController = Get.find<AuthController>();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -32,7 +29,7 @@ class RegisterScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             TextField(
-              controller: _emailController,
+              onChanged: (value) => authController.email.value = value,
               decoration: InputDecoration(
                 labelText: 'email_label'.tr,
                 prefixIcon: const Icon(Icons.email_outlined),
@@ -41,7 +38,7 @@ class RegisterScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             TextField(
-              controller: _passwordController,
+              onChanged: (value) => authController.password.value = value,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'password_label'.tr,
@@ -50,7 +47,7 @@ class RegisterScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-            Obx(() => _authController.isLoading.value
+            Obx(() => authController.isLoading.value
                 ? const CircularProgressIndicator()
                 : SizedBox(
                     width: double.infinity,
@@ -60,12 +57,7 @@ class RegisterScreen extends StatelessWidget {
                         backgroundColor: theme.primaryColor,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () {
-                        _authController.signUp(
-                          _emailController.text.trim(),
-                          _passwordController.text.trim(),
-                        );
-                      },
+                      onPressed: () => authController.signUp(), // Sin argumentos
                       child: Text('register_button'.tr),
                     ),
                   )),
