@@ -16,30 +16,30 @@ class ObjectDetectionController extends GetxController {
     loadModel().then((_) => initCamera());
   }
 
-  // 1. Carga el modelo con manejo de errores
+  // 1. Carga el modelo
   Future<void> loadModel() async {
     try {
       String? res = await Tflite.loadModel(
         model: "assets/models/model.tflite",
         labels: "assets/models/labels.txt",
-        numThreads: 2, // Usamos 2 hilos para que el celular no se caliente tanto
+        numThreads: 1, // Reducimos a 1 para máxima estabilidad en la prueba
         isAsset: true,
       );
-      print("Cerebro de IA listo: $res");
+      print("Cerebro de IA cargado: $res");
     } catch (e) {
       print("Error fatal al cargar IA: $e");
     }
   }
 
-  // 2. Inicializa la cámara con permisos
+  // 2. Inicializa la cámara
   Future<void> initCamera() async {
     var status = await Permission.camera.request();
     if (status.isGranted) {
       cameras = await availableCameras();
       if (cameras != null && cameras!.isNotEmpty) {
         cameraController = CameraController(
-          cameras![0], // Cámara trasera
-          ResolutionPreset.medium, // Resolución media para mejor rendimiento
+          cameras![0],
+          ResolutionPreset.low, // Bajamos la resolución a LOW para que el proceso sea más ligero
           enableAudio: false,
           imageFormatGroup: ImageFormatGroup.yuv420,
         );
@@ -47,14 +47,10 @@ class ObjectDetectionController extends GetxController {
         await cameraController!.initialize();
         isCameraInitialized.value = true;
 
-        // 3. Flujo de imágenes controlado
-        cameraController!.startImageStream((CameraImage image) async {
+        cameraController!.startImageStream((CameraImage image) {
           if (!isProcessing.value) {
             isProcessing.value = true;
-            
-            // Damos un pequeño respiro al procesador (150ms)
-            await Future.delayed(const Duration(milliseconds: 150));
-            
+            // Quitamos el delay para ver si el flujo directo ayuda a la librería
             runModelOnFrame(image);
           }
         });
@@ -62,19 +58,19 @@ class ObjectDetectionController extends GetxController {
     }
   }
 
-  // 4. Inferencia de IA (CORREGIDA PARA MODELO CUANTIZADO)
+  // 3. Inferencia de IA (ESTA ES LA PARTE CRÍTICA)
   Future<void> runModelOnFrame(CameraImage image) async {
     try {
+      // Intentamos con los valores de normalización estándar para MobileNet Quant
       var recognitions = await Tflite.runModelOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        // IMPORTANTE: Para modelos UINT8 (cuantizados) usamos estos valores:
-        imageMean: 0.0, 
-        imageStd: 255.0, 
+        imageMean: 127.5, // Valor estándar para modelos MobileNet
+        imageStd: 127.5,  // Valor estándar para modelos MobileNet
         rotation: 90,
         numResults: 2,
-        threshold: 0.2, // Umbral de confianza del 20%
+        threshold: 0.1, 
         asynch: true,
       );
 
@@ -82,7 +78,10 @@ class ObjectDetectionController extends GetxController {
     } catch (e) {
       print("Error en inferencia: $e");
     } finally {
-      isProcessing.value = false;
+      // Pequeño respiro después del proceso
+      Future.delayed(const Duration(milliseconds: 200), () {
+        isProcessing.value = false;
+      });
     }
   }
 
