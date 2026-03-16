@@ -19,7 +19,7 @@ dependencies:
 
   # AI & Vision (Offline)
   camera: ^0.10.5+5
-  tflite_v2: 1.0.0
+  tflite_v2: ^1.0.0
   flutter_tts: ^3.8.5
 
   # Storage & Connectivity
@@ -30,6 +30,8 @@ dependencies:
   # UI & Design
   flutter_svg: ^2.0.9
   google_fonts: ^6.1.1
+  # Manejo de permisos
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:
@@ -42,4 +44,5 @@ flutter:
   assets:
     - assets/langs/en-US.json
     - assets/langs/es-ES.json
+    # Importante: los archivos del modelo deben estar dentro de esta carpeta
     - assets/models/
