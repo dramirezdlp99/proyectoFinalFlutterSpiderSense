@@ -7,7 +7,8 @@ import 'core/utils/constants.dart';
 import 'presentation/controllers/auth_controller.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
-import 'presentation/screens/home/home_screen.dart'; // Importante añadir esto
+import 'presentation/screens/home/home_screen.dart';
+import 'presentation/screens/ia/object_detection_screen.dart'; // IMPORTANTE
 
 class TranslationService extends Translations {
   static Map<String, Map<String, String>> translations = {};
@@ -70,7 +71,8 @@ class SpiderSenseApp extends StatelessWidget {
         GetPage(name: '/', page: () => const SplashScreen()),
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/register', page: () => RegisterScreen()),
-        GetPage(name: '/home', page: () => const HomeScreen()), // Nueva ruta
+        GetPage(name: '/home', page: () => const HomeScreen()),
+        GetPage(name: '/ia', page: () => const ObjectDetectionScreen()), // RUTA AGREGADA
       ],
     );
   }

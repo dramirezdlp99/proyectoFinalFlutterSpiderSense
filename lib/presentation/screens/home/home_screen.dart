@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/auth_controller.dart'; // Asegúrate de importar el controlador
+import '../../controllers/auth_controller.dart';
+import '../ia/object_detection_screen.dart'; // IMPORTANTE
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Buscamos el controlador existente
     final AuthController authController = Get.find<AuthController>();
 
     return Scaffold(
@@ -35,17 +35,15 @@ class HomeScreen extends StatelessWidget {
               Get.changeTheme(Get.isDarkMode ? ThemeData.light() : ThemeData.dark());
             },
           ),
-          // NUEVO: Botón de Cerrar Sesión
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
             onPressed: () => authController.logout(),
           ),
         ],
       ),
-      body: SingleChildScrollView( // Usamos SingleChildScrollView por si el contenido crece
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            // SECCIÓN ADMIN: Solo visible si isAdmin es true
             Obx(() => authController.isAdmin.value 
               ? Container(
                   padding: const EdgeInsets.all(10),
@@ -67,7 +65,7 @@ class HomeScreen extends StatelessWidget {
             ),
 
             GridView.count(
-              shrinkWrap: true, // Importante para que funcione dentro de Column
+              shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               crossAxisCount: 2,
@@ -75,10 +73,10 @@ class HomeScreen extends StatelessWidget {
               crossAxisSpacing: 20,
               children: [
                 _buildMenuCard('ai_object_detection'.tr, Icons.camera_alt, Colors.red, () {
-                  // Aquí conectaremos la cámara pronto
+                  Get.toNamed('/ia'); // AHORA NAVEGA A LA IA
                 }),
                 _buildMenuCard('ai_text_reader'.tr, Icons.text_fields, Colors.blue, () {
-                  // Aquí el lector de texto
+                  // Aquí irá el lector de texto después
                 }),
               ],
             ),
