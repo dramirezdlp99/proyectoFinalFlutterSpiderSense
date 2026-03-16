@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../controllers/auth_controller.dart'; // Asegúrate de importar el controlador
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Buscamos el controlador existente
+    final AuthController authController = Get.find<AuthController>();
+
     return Scaffold(
       appBar: AppBar(
         title: Text('home_title'.tr),
@@ -31,17 +35,55 @@ class HomeScreen extends StatelessWidget {
               Get.changeTheme(Get.isDarkMode ? ThemeData.light() : ThemeData.dark());
             },
           ),
+          // NUEVO: Botón de Cerrar Sesión
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            onPressed: () => authController.logout(),
+          ),
         ],
       ),
-      body: GridView.count(
-        padding: const EdgeInsets.all(20),
-        crossAxisCount: 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        children: [
-          _buildMenuCard('ai_object_detection'.tr, Icons.camera_alt, Colors.red, () {}),
-          _buildMenuCard('ai_text_reader'.tr, Icons.text_fields, Colors.blue, () {}),
-        ],
+      body: SingleChildScrollView( // Usamos SingleChildScrollView por si el contenido crece
+        child: Column(
+          children: [
+            // SECCIÓN ADMIN: Solo visible si isAdmin es true
+            Obx(() => authController.isAdmin.value 
+              ? Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.red)
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.admin_panel_settings, color: Colors.red),
+                      SizedBox(width: 10),
+                      Text("Modo Administrador Activo", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink()
+            ),
+
+            GridView.count(
+              shrinkWrap: true, // Importante para que funcione dentro de Column
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              crossAxisCount: 2,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 20,
+              children: [
+                _buildMenuCard('ai_object_detection'.tr, Icons.camera_alt, Colors.red, () {
+                  // Aquí conectaremos la cámara pronto
+                }),
+                _buildMenuCard('ai_text_reader'.tr, Icons.text_fields, Colors.blue, () {
+                  // Aquí el lector de texto
+                }),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
