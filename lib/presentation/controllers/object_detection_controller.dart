@@ -13,25 +13,24 @@ class ObjectDetectionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Cargamos el modelo primero, luego la cámara
     loadModel().then((_) => initCamera());
   }
 
-  // 1. Carga el modelo
   Future<void> loadModel() async {
     try {
       String? res = await Tflite.loadModel(
         model: "assets/models/model.tflite",
         labels: "assets/models/labels.txt",
-        numThreads: 1, // Reducimos a 1 para máxima estabilidad en la prueba
+        numThreads: 2,
         isAsset: true,
       );
-      print("Cerebro de IA cargado: $res");
+      print("IA Spider-Sense cargada: $res");
     } catch (e) {
-      print("Error fatal al cargar IA: $e");
+      print("Error al cargar el cerebro de la IA: $e");
     }
   }
 
-  // 2. Inicializa la cámara
   Future<void> initCamera() async {
     var status = await Permission.camera.request();
     if (status.isGranted) {
@@ -39,7 +38,7 @@ class ObjectDetectionController extends GetxController {
       if (cameras != null && cameras!.isNotEmpty) {
         cameraController = CameraController(
           cameras![0],
-          ResolutionPreset.low, // Bajamos la resolución a LOW para que el proceso sea más ligero
+          ResolutionPreset.medium,
           enableAudio: false,
           imageFormatGroup: ImageFormatGroup.yuv420,
         );
@@ -47,10 +46,10 @@ class ObjectDetectionController extends GetxController {
         await cameraController!.initialize();
         isCameraInitialized.value = true;
 
+        // Escuchamos el flujo de imágenes
         cameraController!.startImageStream((CameraImage image) {
           if (!isProcessing.value) {
             isProcessing.value = true;
-            // Quitamos el delay para ver si el flujo directo ayuda a la librería
             runModelOnFrame(image);
           }
         });
@@ -58,28 +57,26 @@ class ObjectDetectionController extends GetxController {
     }
   }
 
-  // 3. Inferencia de IA (ESTA ES LA PARTE CRÍTICA)
   Future<void> runModelOnFrame(CameraImage image) async {
     try {
-      // Intentamos con los valores de normalización estándar para MobileNet Quant
       var recognitions = await Tflite.runModelOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        imageMean: 127.5, // Valor estándar para modelos MobileNet
-        imageStd: 127.5,  // Valor estándar para modelos MobileNet
+        imageMean: 127.5, // Requerido para modelos MobileNet Float
+        imageStd: 127.5,  // Requerido para modelos MobileNet Float
         rotation: 90,
         numResults: 2,
-        threshold: 0.1, 
+        threshold: 0.2,
         asynch: true,
       );
 
       predictions.value = recognitions ?? [];
     } catch (e) {
-      print("Error en inferencia: $e");
+      print("Error en reconocimiento: $e");
     } finally {
-      // Pequeño respiro después del proceso
-      Future.delayed(const Duration(milliseconds: 200), () {
+      // Pequeño respiro para evitar que el celular se caliente
+      Future.delayed(const Duration(milliseconds: 100), () {
         isProcessing.value = false;
       });
     }
