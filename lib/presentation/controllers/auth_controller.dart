@@ -21,7 +21,7 @@ class AuthController extends GetxController {
       
       if (response.user != null) {
         // Verificamos si es administrador (puedes cambiar este correo por el tuyo)
-        isAdmin.value = response.user!.email == 'tu_correo@admin.com';
+        isAdmin.value = response.user!.email == 'davidramirezdelaparra99@gmail.com';
         Get.offAllNamed('/home');
       }
     } on AuthException catch (e) {
