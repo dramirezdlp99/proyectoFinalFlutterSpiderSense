@@ -11,15 +11,16 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # State Management & Navigation
+  # State Management
   get: ^4.6.6
 
-  # Backend & Authentication (Supabase)
+  # Backend & Auth
   supabase_flutter: ^2.0.2
 
-  # AI & Vision (Offline)
-  camera: ^0.10.5+5
-  tflite_v2: ^1.0.0
+  # IA & VISION (VERSIONES COMPATIBLES)
+  camera: ^0.11.0+2
+  google_mlkit_object_detection: ^0.13.0
+  google_mlkit_commons: ^0.8.1
   flutter_tts: ^3.8.5
 
   # Storage & Connectivity
@@ -30,7 +31,6 @@ dependencies:
   # UI & Design
   flutter_svg: ^2.0.9
   google_fonts: ^6.1.1
-  # Manejo de permisos
   permission_handler: ^11.3.0
 
 dev_dependencies:
@@ -40,9 +40,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
   assets:
     - assets/langs/en-US.json
     - assets/langs/es-ES.json
-    # Importante: los archivos del modelo deben estar dentro de esta carpeta
-    - assets/models/

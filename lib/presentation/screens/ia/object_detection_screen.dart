@@ -8,7 +8,7 @@ class ObjectDetectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Inyectamos el controlador
+    // Inyectamos el controlador de GetX
     final controller = Get.put(ObjectDetectionController());
 
     return Scaffold(
@@ -20,27 +20,20 @@ class ObjectDetectionScreen extends StatelessWidget {
       ),
       backgroundColor: Colors.black,
       body: Obx(() {
-        if (!controller.isCameraInitialized.value) {
+        if (!controller.isCameraInitialized.value || controller.cameraController == null) {
           return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: Colors.red),
-                SizedBox(height: 20),
-                Text("INICIALIZANDO LENTES...", 
-                  style: TextStyle(color: Colors.white, letterSpacing: 2)),
-              ],
-            ),
+            child: CircularProgressIndicator(color: Colors.red),
           );
         }
 
         return Stack(
           children: [
+            // Vista previa de la cámara a pantalla completa
             Positioned.fill(
               child: CameraPreview(controller.cameraController!),
             ),
             
-            // Panel de resultados
+            // Panel inferior de resultados
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
@@ -55,65 +48,60 @@ class ObjectDetectionScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 50,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 15),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    
                     const Text(
-                      "ANÁLISIS DE ENTORNO EN TIEMPO REAL",
+                      "SISTEMA DE ANÁLISIS ML KIT",
                       style: TextStyle(
                         color: Colors.redAccent, 
-                        fontSize: 9, 
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold
+                        fontSize: 10, 
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 15),
                     
                     Builder(builder: (context) {
                       if (controller.predictions.isEmpty) {
-                        return const Text("BUSCANDO OBJETIVOS...", 
-                          style: TextStyle(color: Colors.white70, fontSize: 16, fontStyle: FontStyle.italic));
+                        return const Text(
+                          "BUSCANDO OBJETIVOS...", 
+                          style: TextStyle(color: Colors.white70, fontSize: 16, fontStyle: FontStyle.italic)
+                        );
                       }
 
-                      var topResult = controller.predictions[0];
-                      double confidence = topResult['confidence'] ?? 0.0;
-
-                      // Umbral de 0.25 para que detecte tus dispositivos
-                      if (confidence < 0.25) {
-                        return const Text("IDENTIFICANDO...", 
-                          style: TextStyle(color: Colors.white54, fontSize: 16));
-                      }
+                      // Tomamos el primer objeto detectado
+                      final topObject = controller.predictions.first;
+                      
+                      // ML Kit devuelve una lista de posibles etiquetas (labels)
+                      final String label = topObject.labels.isNotEmpty 
+                          ? topObject.labels.first.text 
+                          : "Objeto identificado";
+                      
+                      final double confidence = topObject.labels.isNotEmpty 
+                          ? topObject.labels.first.confidence 
+                          : 0.0;
 
                       return Column(
                         children: [
                           Text(
-                            topResult['label'].toString().toUpperCase(),
+                            label.toUpperCase(),
                             textAlign: TextAlign.center,
-                            style: TextStyle( // SE ELIMINÓ 'const' AQUÍ PARA EVITAR EL ERROR
+                            style: const TextStyle(
                               color: Colors.white, 
                               fontSize: 26, 
-                              fontWeight: FontWeight.w900, // Reemplazo seguro de .black
+                              fontWeight: FontWeight.w900,
                               letterSpacing: 1.0
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           LinearProgressIndicator(
                             value: confidence,
                             backgroundColor: Colors.white10,
-                            color: confidence > 0.6 ? Colors.greenAccent : Colors.orangeAccent,
+                            color: confidence > 0.5 ? Colors.greenAccent : Colors.orangeAccent,
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            "${(confidence * 100).toStringAsFixed(1)}% DE PROBABILIDAD",
+                            "${(confidence * 100).toStringAsFixed(1)}% DE PRECISIÓN",
                             style: TextStyle(
-                              color: confidence > 0.6 ? Colors.greenAccent : Colors.orangeAccent, 
+                              color: confidence > 0.5 ? Colors.greenAccent : Colors.orangeAccent, 
                               fontSize: 12,
                               fontWeight: FontWeight.bold
                             ),
