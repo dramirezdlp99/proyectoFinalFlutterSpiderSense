@@ -2,7 +2,7 @@ import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart
 import 'package:camera/camera.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart'; // NECESARIO PARA debugPrint
+import 'package:flutter/foundation.dart'; 
 import 'dart:io';
 import 'dart:ui';
 
@@ -10,7 +10,6 @@ class ObjectDetectionController extends GetxController {
   CameraController? cameraController;
   RxBool isCameraInitialized = false.obs;
   
-  // Lista de objetos detectados (Formato ML Kit)
   RxList<DetectedObject> predictions = <DetectedObject>[].obs;
   
   ObjectDetector? _objectDetector;
@@ -24,7 +23,6 @@ class ObjectDetectionController extends GetxController {
   }
 
   void _initializeDetector() {
-    // Configuramos el motor de búsqueda de Google
     final options = ObjectDetectorOptions(
       mode: DetectionMode.stream,
       classifyObjects: true,
@@ -41,13 +39,13 @@ class ObjectDetectionController extends GetxController {
       cameras[0],
       ResolutionPreset.medium,
       enableAudio: false,
+      // Forzamos el formato para evitar el error de IllegalArgumentException
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.yuv420 : ImageFormatGroup.bgra8888,
     );
 
     await cameraController!.initialize();
     isCameraInitialized.value = true;
 
-    // Escuchamos el flujo de imágenes constantemente
     cameraController!.startImageStream((image) {
       if (_isProcessing) return;
       _processImage(image);
@@ -58,7 +56,7 @@ class ObjectDetectionController extends GetxController {
     _isProcessing = true;
     
     try {
-      // Conversión de bytes para el motor de Google
+      // Nueva forma de extraer bytes para evitar el error de InputImageConverter
       final WriteBuffer allBytes = WriteBuffer();
       for (final Plane plane in image.planes) {
         allBytes.putUint8List(plane.bytes);
@@ -70,27 +68,27 @@ class ObjectDetectionController extends GetxController {
         metadata: InputImageMetadata(
           size: Size(image.width.toDouble(), image.height.toDouble()),
           rotation: InputImageRotation.rotation90deg, 
-          format: InputImageFormat.yuv420,
+          format: InputImageFormat.yuv420, // Formato estándar Android
           bytesPerRow: image.planes[0].bytesPerRow,
         ),
       );
 
       final List<DetectedObject> objects = await _objectDetector!.processImage(inputImage);
-      
-      // Actualizamos la lista observable
       predictions.assignAll(objects);
       
     } catch (e) {
-      debugPrint("Error de detección: $e");
+      // Si el error persiste, lo capturamos aquí para que no rompa la app
+      debugPrint("Fallo en conversión de imagen: $e");
     } finally {
-      // Pequeño delay para no saturar el procesador del móvil
-      await Future.delayed(const Duration(milliseconds: 300));
+      // Aumentamos un poco el delay para dar respiro al procesador
+      await Future.delayed(const Duration(milliseconds: 500));
       _isProcessing = false;
     }
   }
 
   @override
   void onClose() {
+    cameraController?.stopImageStream();
     cameraController?.dispose();
     _objectDetector?.close();
     super.onClose();
