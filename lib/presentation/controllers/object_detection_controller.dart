@@ -9,7 +9,6 @@ import 'dart:ui';
 class ObjectDetectionController extends GetxController {
   CameraController? cameraController;
   RxBool isCameraInitialized = false.obs;
-  
   RxList<DetectedObject> predictions = <DetectedObject>[].obs;
   
   ObjectDetector? _objectDetector;
@@ -37,9 +36,8 @@ class ObjectDetectionController extends GetxController {
 
     cameraController = CameraController(
       cameras[0],
-      ResolutionPreset.medium,
+      ResolutionPreset.low, 
       enableAudio: false,
-      // Forzamos el formato para evitar el error de IllegalArgumentException
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.yuv420 : ImageFormatGroup.bgra8888,
     );
 
@@ -56,8 +54,8 @@ class ObjectDetectionController extends GetxController {
     _isProcessing = true;
     
     try {
-      // Nueva forma de extraer bytes para evitar el error de InputImageConverter
-      final WriteBuffer allBytes = WriteBuffer();
+      // PROCESAMIENTO ROBUSTO DE BYTES (Solución al IllegalArgumentException)
+      final allBytes = WriteBuffer();
       for (final Plane plane in image.planes) {
         allBytes.putUint8List(plane.bytes);
       }
@@ -67,8 +65,8 @@ class ObjectDetectionController extends GetxController {
         bytes: bytes,
         metadata: InputImageMetadata(
           size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: InputImageRotation.rotation90deg, 
-          format: InputImageFormat.yuv420, // Formato estándar Android
+          rotation: _getRotation(cameraController!.description.sensorOrientation), 
+          format: InputImageFormat.yuv420,
           bytesPerRow: image.planes[0].bytesPerRow,
         ),
       );
@@ -77,12 +75,21 @@ class ObjectDetectionController extends GetxController {
       predictions.assignAll(objects);
       
     } catch (e) {
-      // Si el error persiste, lo capturamos aquí para que no rompa la app
       debugPrint("Fallo en conversión de imagen: $e");
     } finally {
-      // Aumentamos un poco el delay para dar respiro al procesador
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Delay mayor para evitar saturación en el procesador del móvil
+      await Future.delayed(const Duration(milliseconds: 600));
       _isProcessing = false;
+    }
+  }
+
+  // Ajuste preciso de rotación según el sensor del dispositivo
+  InputImageRotation _getRotation(int orientation) {
+    switch (orientation) {
+      case 90: return InputImageRotation.rotation90deg;
+      case 180: return InputImageRotation.rotation180deg;
+      case 270: return InputImageRotation.rotation270deg;
+      default: return InputImageRotation.rotation0deg;
     }
   }
 
