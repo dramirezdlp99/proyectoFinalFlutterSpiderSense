@@ -20,6 +20,7 @@ dependencies:
   image: ^4.1.3
   flutter_tts: ^3.8.5
   vibration: ^2.0.0
+  geolocator: ^13.0.2
 
   hive_flutter: ^1.1.0
   connectivity_plus: ^5.0.2
