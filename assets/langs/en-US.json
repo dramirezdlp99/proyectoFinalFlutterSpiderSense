@@ -19,5 +19,6 @@
   "welcome_user": "Welcome back",
   "ai_object_detection": "Object Detection",
   "ai_text_reader": "Text Reader",
-  "logout": "Logout"
+  "logout": "Logout",
+  "confidence": "confidence"
 }
