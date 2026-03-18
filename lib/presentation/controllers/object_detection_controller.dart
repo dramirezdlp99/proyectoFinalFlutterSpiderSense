@@ -7,6 +7,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:vibration/vibration.dart';
 
 class DetectionResult {
   final String label;
@@ -25,6 +26,7 @@ class ObjectDetectionController extends GetxController {
   RxBool isCameraInitialized = false.obs;
   RxList<DetectionResult> predictions = <DetectionResult>[].obs;
   RxString statusMessage = 'Initializing...'.obs;
+  RxBool isDangerDetected = false.obs;
 
   Interpreter? _interpreter;
   FlutterTts? _tts;
@@ -32,7 +34,24 @@ class ObjectDetectionController extends GetxController {
   bool _isProcessing = false;
   bool _isDisposed = false;
   String _lastSpokenLabel = '';
-  DateTime _lastSpokenTime = DateTime.now().subtract(const Duration(seconds: 10));
+  DateTime _lastSpokenTime =
+      DateTime.now().subtract(const Duration(seconds: 10));
+
+  // Objetos considerados peligrosos para un invidente
+  static const List<String> _dangerousObjects = [
+    'car',
+    'truck',
+    'bus',
+    'motorcycle',
+    'bicycle',
+    'dog',
+    'cat',
+    'person',
+    'train',
+    'traffic light',
+    'stop sign',
+    'fire hydrant',
+  ];
 
   static const Map<String, String> _translations = {
     'person': 'Persona',
@@ -129,14 +148,20 @@ class ObjectDetectionController extends GetxController {
 
   Future<void> _speak(String text) async {
     final now = DateTime.now();
-    // Solo habla si han pasado 3 segundos desde la última vez
-    // y si el objeto detectado es diferente al anterior
     if (now.difference(_lastSpokenTime).inSeconds >= 3 ||
         text != _lastSpokenLabel) {
       _lastSpokenLabel = text;
       _lastSpokenTime = now;
       _updateTtsLanguage();
       await _tts?.speak(text);
+    }
+  }
+
+  Future<void> _vibrateForDanger() async {
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (hasVibrator) {
+      // Patrón de vibración: vibra 3 veces rápido para alertar peligro
+      Vibration.vibrate(pattern: [0, 200, 100, 200, 100, 200]);
     }
   }
 
@@ -262,13 +287,22 @@ class ObjectDetectionController extends GetxController {
       if (!_isDisposed) {
         predictions.assignAll(results);
 
-        // Hablar si hay detección con más del 70% de confianza
         if (results.isNotEmpty && results.first.confidence >= 0.7) {
           final isSpanish = Get.locale?.languageCode == 'es';
           final textToSpeak = isSpanish
               ? results.first.labelEs
               : results.first.label;
           await _speak(textToSpeak);
+
+          // Vibrar si el objeto detectado es peligroso
+          final isDangerous = _dangerousObjects
+              .contains(results.first.label.toLowerCase());
+          isDangerDetected.value = isDangerous;
+          if (isDangerous) {
+            await _vibrateForDanger();
+          }
+        } else {
+          isDangerDetected.value = false;
         }
       }
     } catch (e) {
