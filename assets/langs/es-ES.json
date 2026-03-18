@@ -19,5 +19,6 @@
   "welcome_user": "Bienvenido",
   "ai_object_detection": "Detección de Objetos",
   "ai_text_reader": "Lector de Texto",
-  "logout": "Cerrar Sesión"
+  "logout": "Cerrar Sesión",
+  "confidence": "de precisión"
 }
