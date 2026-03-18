@@ -8,17 +8,24 @@ import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:vibration/vibration.dart';
+import '../../../data/service/location_service.dart';
 
 class DetectionResult {
   final String label;
   final double confidence;
   final String labelEs;
+  final double? latitude;
+  final double? longitude;
+  final DateTime detectedAt;
 
   DetectionResult({
     required this.label,
     required this.confidence,
     required this.labelEs,
-  });
+    this.latitude,
+    this.longitude,
+    DateTime? detectedAt,
+  }) : detectedAt = detectedAt ?? DateTime.now();
 }
 
 class ObjectDetectionController extends GetxController {
@@ -27,17 +34,20 @@ class ObjectDetectionController extends GetxController {
   RxList<DetectionResult> predictions = <DetectionResult>[].obs;
   RxString statusMessage = 'Initializing...'.obs;
   RxBool isDangerDetected = false.obs;
+  RxString currentLocation = ''.obs;
 
   Interpreter? _interpreter;
   FlutterTts? _tts;
+  final LocationService _locationService = LocationService();
   List<String> _labels = [];
   bool _isProcessing = false;
   bool _isDisposed = false;
   String _lastSpokenLabel = '';
   DateTime _lastSpokenTime =
       DateTime.now().subtract(const Duration(seconds: 10));
+  DateTime _lastLocationTime =
+      DateTime.now().subtract(const Duration(seconds: 30));
 
-  // Objetos considerados peligrosos para un invidente
   static const List<String> _dangerousObjects = [
     'car',
     'truck',
@@ -131,6 +141,7 @@ class ObjectDetectionController extends GetxController {
     super.onInit();
     _initializeTts();
     _initializeModel();
+    _locationService.requestPermission();
   }
 
   Future<void> _initializeTts() async {
@@ -160,8 +171,22 @@ class ObjectDetectionController extends GetxController {
   Future<void> _vibrateForDanger() async {
     final hasVibrator = await Vibration.hasVibrator() ?? false;
     if (hasVibrator) {
-      // Patrón de vibración: vibra 3 veces rápido para alertar peligro
       Vibration.vibrate(pattern: [0, 200, 100, 200, 100, 200]);
+    }
+  }
+
+  Future<void> _getLocationForDanger() async {
+    final now = DateTime.now();
+    // Solo obtiene ubicación cada 30 segundos para no saturar el GPS
+    if (now.difference(_lastLocationTime).inSeconds < 30) return;
+    _lastLocationTime = now;
+
+    final position = await _locationService.getCurrentPosition();
+    if (position != null) {
+      currentLocation.value =
+          _locationService.formatPosition(position);
+      debugPrint(
+          'Danger detected at: ${currentLocation.value}');
     }
   }
 
@@ -281,6 +306,8 @@ class ObjectDetectionController extends GetxController {
           label: label,
           confidence: score,
           labelEs: labelEs,
+          latitude: _locationService.lastPosition?.latitude,
+          longitude: _locationService.lastPosition?.longitude,
         ));
       }
 
@@ -294,12 +321,13 @@ class ObjectDetectionController extends GetxController {
               : results.first.label;
           await _speak(textToSpeak);
 
-          // Vibrar si el objeto detectado es peligroso
           final isDangerous = _dangerousObjects
               .contains(results.first.label.toLowerCase());
           isDangerDetected.value = isDangerous;
+
           if (isDangerous) {
             await _vibrateForDanger();
+            await _getLocationForDanger();
           }
         } else {
           isDangerDetected.value = false;
