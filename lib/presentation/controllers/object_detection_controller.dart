@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -31,7 +30,6 @@ class ObjectDetectionController extends GetxController {
   bool _isProcessing = false;
   bool _isDisposed = false;
 
-  // Traducción básica de los objetos más comunes
   static const Map<String, String> _translations = {
     'person': 'Persona',
     'bicycle': 'Bicicleta',
@@ -115,22 +113,22 @@ class ObjectDetectionController extends GetxController {
     try {
       statusMessage.value = 'Loading AI model...';
 
-      // Cargar etiquetas
+      // Cargar y limpiar etiquetas — elimina líneas vacías y la línea "???"
       final labelsData =
           await rootBundle.loadString('assets/models/labelmap.txt');
       _labels = labelsData
           .split('\n')
           .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
+          .where((e) => e.isNotEmpty && e != '???')
           .toList();
 
-      // Cargar modelo TFLite
-      _interpreter = await Interpreter.fromAsset('assets/models/detect.tflite');
+      _interpreter =
+          await Interpreter.fromAsset('assets/models/detect.tflite');
 
       statusMessage.value = 'Starting camera...';
       await _initializeCamera();
     } catch (e) {
-      statusMessage.value = 'Error loading model: $e';
+      statusMessage.value = 'Error: $e';
       debugPrint('Model error: $e');
     }
   }
@@ -152,7 +150,6 @@ class ObjectDetectionController extends GetxController {
     );
 
     await cameraController!.initialize();
-
     if (_isDisposed) return;
 
     isCameraInitialized.value = true;
@@ -166,16 +163,14 @@ class ObjectDetectionController extends GetxController {
 
   Future<void> _processImage(CameraImage cameraImage) async {
     _isProcessing = true;
-
     try {
-      // Convertir CameraImage a img.Image en un isolate separado
-      final convertedImage = await compute(_convertCameraImage, cameraImage);
+      final convertedImage =
+          await compute(_convertCameraImage, cameraImage);
       if (convertedImage == null) return;
 
-      // Redimensionar a 300x300 que es lo que espera el modelo SSD MobileNet
-      final resized = img.copyResize(convertedImage, width: 300, height: 300);
+      final resized =
+          img.copyResize(convertedImage, width: 300, height: 300);
 
-      // Preparar el tensor de entrada [1, 300, 300, 3]
       final input = List.generate(
         1,
         (_) => List.generate(
@@ -184,19 +179,18 @@ class ObjectDetectionController extends GetxController {
             300,
             (x) {
               final pixel = resized.getPixel(x, y);
-              return [pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt()];
+              return [
+                pixel.r.toInt(),
+                pixel.g.toInt(),
+                pixel.b.toInt()
+              ];
             },
           ),
         ),
       );
 
-      // Preparar tensores de salida del modelo SSD MobileNet
-      // Salida 0: locations [1, 10, 4]
-      // Salida 1: classes [1, 10]
-      // Salida 2: scores [1, 10]
-      // Salida 3: count [1]
-      final outputLocations =
-          List.generate(1, (_) => List.generate(10, (_) => List.filled(4, 0.0)));
+      final outputLocations = List.generate(
+          1, (_) => List.generate(10, (_) => List.filled(4, 0.0)));
       final outputClasses =
           List.generate(1, (_) => List.filled(10, 0.0));
       final outputScores =
@@ -212,19 +206,24 @@ class ObjectDetectionController extends GetxController {
 
       _interpreter!.runForMultipleInputs([input], outputs);
 
-      // Procesar resultados
       final List<DetectionResult> results = [];
       final int count = outputCount[0].toInt();
 
       for (int i = 0; i < count && i < 10; i++) {
         final score = outputScores[0][i];
-        if (score < 0.5) continue; // Solo mostrar con más del 50% de confianza
+        if (score < 0.5) continue;
 
         final classIndex = outputClasses[0][i].toInt();
-        final label = classIndex < _labels.length
-            ? _labels[classIndex]
+
+        // ← CORRECCIÓN CLAVE: el labelmap tiene una línea extra al inicio
+        // el índice real es classIndex + 1
+        final labelIndex = classIndex + 1;
+        final label = labelIndex < _labels.length
+            ? _labels[labelIndex]
             : 'Unknown';
-        final labelEs = _translations[label.toLowerCase()] ?? label;
+
+        final labelEs =
+            _translations[label.toLowerCase()] ?? label;
 
         results.add(DetectionResult(
           label: label,
@@ -244,7 +243,6 @@ class ObjectDetectionController extends GetxController {
     }
   }
 
-  // Función estática para ejecutar en isolate (no puede ser método de instancia)
   static img.Image? _convertCameraImage(CameraImage image) {
     try {
       if (image.format.group == ImageFormatGroup.yuv420) {
@@ -271,17 +269,24 @@ class ObjectDetectionController extends GetxController {
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
-        final int uvIndex =
-            uvPixelStride * (x / 2).floor() + uvRowStride * (y / 2).floor();
-        final int yValue = yPlane[y * image.planes[0].bytesPerRow + x];
+        final int uvIndex = uvPixelStride * (x / 2).floor() +
+            uvRowStride * (y / 2).floor();
+        final int yValue =
+            yPlane[y * image.planes[0].bytesPerRow + x];
         final int uValue = uPlane[uvIndex];
         final int vValue = vPlane[uvIndex];
 
-        int r = (yValue + 1.370705 * (vValue - 128)).round().clamp(0, 255);
-        int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128))
+        int r = (yValue + 1.370705 * (vValue - 128))
             .round()
             .clamp(0, 255);
-        int b = (yValue + 1.732446 * (uValue - 128)).round().clamp(0, 255);
+        int g = (yValue -
+                0.337633 * (uValue - 128) -
+                0.698001 * (vValue - 128))
+            .round()
+            .clamp(0, 255);
+        int b = (yValue + 1.732446 * (uValue - 128))
+            .round()
+            .clamp(0, 255);
 
         result.setPixelRgb(x, y, r, g, b);
       }
