@@ -1,37 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'core/localization/translation_service.dart';
 import 'core/utils/constants.dart';
 import 'presentation/controllers/auth_controller.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
-import 'presentation/screens/ia/object_detection_screen.dart'; // IMPORTANTE
-
-class TranslationService extends Translations {
-  static Map<String, Map<String, String>> translations = {};
-
-  static Future<void> init() async {
-    translations['en_US'] = await _loadJson('en-US');
-    translations['es_ES'] = await _loadJson('es-ES');
-  }
-
-  static Future<Map<String, String>> _loadJson(String code) async {
-    try {
-      final String response = await rootBundle.loadString('assets/langs/$code.json');
-      final Map<String, dynamic> data = json.decode(response);
-      return data.map((key, value) => MapEntry(key, value.toString()));
-    } catch (e) {
-      debugPrint("Error loading translation $code: $e");
-      return {};
-    }
-  }
-
-  @override
-  Map<String, Map<String, String>> get keys => translations;
-}
+import 'presentation/screens/ia/object_detection_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,8 +29,8 @@ class SpiderSenseApp extends StatelessWidget {
     return GetMaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      translations: TranslationService(), 
-      locale: Get.deviceLocale, 
+      translations: TranslationService(),
+      locale: Get.deviceLocale,
       fallbackLocale: const Locale('en', 'US'),
       theme: ThemeData(
         useMaterial3: true,
@@ -72,7 +49,7 @@ class SpiderSenseApp extends StatelessWidget {
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/register', page: () => RegisterScreen()),
         GetPage(name: '/home', page: () => const HomeScreen()),
-        GetPage(name: '/ia', page: () => const ObjectDetectionScreen()), // RUTA AGREGADA
+        GetPage(name: '/ia', page: () => const ObjectDetectionScreen()),
       ],
     );
   }
@@ -80,6 +57,7 @@ class SpiderSenseApp extends StatelessWidget {
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -88,10 +66,19 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      Get.offNamed('/login');
-    });
+    _checkSession();
   }
+
+  Future<void> _checkSession() async {
+    await Future.delayed(const Duration(seconds: 2));
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      Get.offAllNamed('/home');
+    } else {
+      Get.offAllNamed('/login');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,8 +90,15 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 20),
             const CircularProgressIndicator(color: Colors.red),
             const SizedBox(height: 20),
-            Text(AppConstants.appName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text('splash_init'.tr.isEmpty ? 'Initializing AI System...' : 'splash_init'.tr),
+            Text(
+              AppConstants.appName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text('splash_init'.tr),
           ],
         ),
       ),
