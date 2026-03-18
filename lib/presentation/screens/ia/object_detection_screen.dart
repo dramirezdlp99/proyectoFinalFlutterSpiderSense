@@ -114,7 +114,7 @@ class ObjectDetectionScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            "${(top.confidence * 100).toStringAsFixed(1)}% confidence",
+                            "${(top.confidence * 100).toStringAsFixed(1)}% ${'confidence'.tr}",
                             style: TextStyle(
                               color: top.confidence > 0.7
                                   ? Colors.greenAccent
