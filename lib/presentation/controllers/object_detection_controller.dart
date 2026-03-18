@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -26,9 +27,12 @@ class ObjectDetectionController extends GetxController {
   RxString statusMessage = 'Initializing...'.obs;
 
   Interpreter? _interpreter;
+  FlutterTts? _tts;
   List<String> _labels = [];
   bool _isProcessing = false;
   bool _isDisposed = false;
+  String _lastSpokenLabel = '';
+  DateTime _lastSpokenTime = DateTime.now().subtract(const Duration(seconds: 10));
 
   static const Map<String, String> _translations = {
     'person': 'Persona',
@@ -106,14 +110,40 @@ class ObjectDetectionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _initializeTts();
     _initializeModel();
+  }
+
+  Future<void> _initializeTts() async {
+    _tts = FlutterTts();
+    await _tts!.setVolume(1.0);
+    await _tts!.setSpeechRate(0.5);
+    await _tts!.setPitch(1.0);
+    _updateTtsLanguage();
+  }
+
+  void _updateTtsLanguage() {
+    final isSpanish = Get.locale?.languageCode == 'es';
+    _tts?.setLanguage(isSpanish ? 'es-ES' : 'en-US');
+  }
+
+  Future<void> _speak(String text) async {
+    final now = DateTime.now();
+    // Solo habla si han pasado 3 segundos desde la última vez
+    // y si el objeto detectado es diferente al anterior
+    if (now.difference(_lastSpokenTime).inSeconds >= 3 ||
+        text != _lastSpokenLabel) {
+      _lastSpokenLabel = text;
+      _lastSpokenTime = now;
+      _updateTtsLanguage();
+      await _tts?.speak(text);
+    }
   }
 
   Future<void> _initializeModel() async {
     try {
       statusMessage.value = 'Loading AI model...';
 
-      // Cargar y limpiar etiquetas — elimina líneas vacías y la línea "???"
       final labelsData =
           await rootBundle.loadString('assets/models/labelmap.txt');
       _labels = labelsData
@@ -214,9 +244,6 @@ class ObjectDetectionController extends GetxController {
         if (score < 0.5) continue;
 
         final classIndex = outputClasses[0][i].toInt();
-
-        // ← CORRECCIÓN CLAVE: el labelmap tiene una línea extra al inicio
-        // el índice real es classIndex + 1
         final labelIndex = classIndex + 1;
         final label = labelIndex < _labels.length
             ? _labels[labelIndex]
@@ -234,6 +261,15 @@ class ObjectDetectionController extends GetxController {
 
       if (!_isDisposed) {
         predictions.assignAll(results);
+
+        // Hablar si hay detección con más del 70% de confianza
+        if (results.isNotEmpty && results.first.confidence >= 0.7) {
+          final isSpanish = Get.locale?.languageCode == 'es';
+          final textToSpeak = isSpanish
+              ? results.first.labelEs
+              : results.first.label;
+          await _speak(textToSpeak);
+        }
       }
     } catch (e) {
       debugPrint('Detection error: $e');
@@ -306,6 +342,7 @@ class ObjectDetectionController extends GetxController {
   @override
   void onClose() {
     _isDisposed = true;
+    _tts?.stop();
     cameraController?.stopImageStream();
     cameraController?.dispose();
     _interpreter?.close();
