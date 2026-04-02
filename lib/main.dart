@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -15,18 +16,15 @@ import 'presentation/screens/ia/object_detection_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
 
-  // Inicializar traducciones
   await TranslationService.init();
 
-  // Inicializar Hive para base de datos local
   await Hive.initFlutter();
   Hive.registerAdapter(DetectionRecordAdapter());
 
-  // Inicializar el servicio de historial
   await HistoryService().init();
 
-  // Inicializar Supabase
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
