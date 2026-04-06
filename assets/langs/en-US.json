@@ -29,5 +29,8 @@
   "history_clear_title": "Clear history",
   "history_clear_msg": "Delete all detections?",
   "cancel": "Cancel",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "menu_features": "Features",
+  "profile_title": "Profile",
+  "settings_title": "Settings"
 }
