@@ -20,5 +20,14 @@
   "ai_object_detection": "Object Detection",
   "ai_text_reader": "Text Reader",
   "logout": "Logout",
-  "confidence": "confidence"
+  "confidence": "confidence",
+  "history_title": "History",
+  "history_all": "List",
+  "history_map": "Map",
+  "history_empty": "No detections saved",
+  "history_no_location": "No locations recorded",
+  "history_clear_title": "Clear history",
+  "history_clear_msg": "Delete all detections?",
+  "cancel": "Cancel",
+  "confirm": "Confirm"
 }
