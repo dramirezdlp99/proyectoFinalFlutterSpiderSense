@@ -14,6 +14,7 @@ import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/ia/object_detection_screen.dart';
 import 'presentation/screens/history/history_screen.dart';
+import 'presentation/screens/profile/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,6 +66,7 @@ class SpiderSenseApp extends StatelessWidget {
         GetPage(name: '/home', page: () => const HomeScreen()),
         GetPage(name: '/ia', page: () => const ObjectDetectionScreen()),
         GetPage(name: '/history', page: () => const HistoryScreen()),
+        GetPage(name: '/profile', page: () => const ProfileScreen()),
       ],
     );
   }
