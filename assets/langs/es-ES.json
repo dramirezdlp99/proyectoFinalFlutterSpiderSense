@@ -36,5 +36,10 @@
   "change_password": "Cambiar contraseña",
   "new_password": "Nueva contraseña",
   "delete_account": "Eliminar cuenta",
-  "delete_account_msg": "Esta acción es irreversible. ¿Deseas eliminar tu cuenta?"
+  "delete_account_msg": "Esta acción es irreversible. ¿Deseas eliminar tu cuenta?",
+  "settings_language": "IDIOMA",
+  "settings_appearance": "APARIENCIA",
+  "settings_data": "DATOS",
+  "settings_light": "Modo claro",
+  "settings_dark": "Modo oscuro"
 }
