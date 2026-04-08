@@ -32,5 +32,9 @@
   "confirm": "Confirmar",
   "menu_features": "Funciones",
   "profile_title": "Perfil",
-  "settings_title": "Ajustes"
+  "settings_title": "Ajustes",
+  "change_password": "Cambiar contraseña",
+  "new_password": "Nueva contraseña",
+  "delete_account": "Eliminar cuenta",
+  "delete_account_msg": "Esta acción es irreversible. ¿Deseas eliminar tu cuenta?"
 }
