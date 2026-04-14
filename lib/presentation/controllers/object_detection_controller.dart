@@ -1,197 +1,232 @@
-import 'dart:io';
 import 'package:camera/camera.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
-import 'package:image/image.dart' as img;
 import 'package:vibration/vibration.dart';
-import '../../../data/models/detection_result.dart';
-import '../../../data/models/detection_record.dart';
-import '../../../data/service/history_service.dart';
-import '../../../data/service/location_service.dart';
-import '../../../data/service/tflite_service.dart';
-import '../../../data/service/vision_service.dart';
+
+import '../../data/models/detection_record.dart';
+import '../../data/models/detection_result.dart';
+import '../../data/service/history_service.dart';
+import '../../data/service/location_service.dart';
+import '../../data/service/tflite_service.dart';
+import 'auth_controller.dart';
 
 class ObjectDetectionController extends GetxController {
+  final TfliteService _tfliteService = TfliteService();
+  final HistoryService _historyService = HistoryService();
+  final LocationService _locationService = LocationService();
+  final FlutterTts _tts = FlutterTts();
+
   CameraController? cameraController;
-  RxBool isCameraInitialized = false.obs;
-  RxList<DetectionResult> predictions = <DetectionResult>[].obs;
-  RxString statusMessage = 'Initializing...'.obs;
-  RxBool isDangerDetected = false.obs;
-  RxBool isOnlineMode = false.obs;
 
-  final _tflite = TfliteService();
-  final _vision = VisionService();
-  final _location = LocationService();
-  final _history = HistoryService();
-  final _tts = FlutterTts();
+  final RxBool isCameraInitialized = false.obs;
+  final RxBool isDangerDetected = false.obs;
+  final RxBool isOnlineMode = false.obs;
+  final RxString statusMessage = 'Initializing camera...'.obs;
+  final RxList<DetectionResult> predictions = <DetectionResult>[].obs;
 
-  bool _isProcessing = false;
+  bool _isProcessingFrame = false;
   bool _isDisposed = false;
-  String _lastSpoken = '';
-  String _lastSaved = '';
-  DateTime _lastSpokenAt = DateTime.now().subtract(const Duration(seconds: 10));
-  DateTime _lastSavedAt = DateTime.now().subtract(const Duration(seconds: 10));
-  DateTime _lastOnlineAt = DateTime.now().subtract(const Duration(seconds: 5));
-  DateTime _lastLocationAt = DateTime.now().subtract(const Duration(seconds: 30));
+  DateTime? _lastProcessedAt;
+  DateTime? _lastAnnouncementAt;
+  DateTime? _lastSavedAt;
+  String? _lastAnnouncedLabel;
+  String? _lastSavedLabel;
+
+  static const Duration _processingInterval = Duration(milliseconds: 700);
+  static const Duration _announcementCooldown = Duration(seconds: 3);
+  static const Duration _saveCooldown = Duration(seconds: 5);
 
   @override
   void onInit() {
     super.onInit();
-    _initTts();
-    _initCamera();
-    _watchConnectivity();
-    _location.requestPermission();
+    _initializeDetection();
   }
 
-  Future<void> _initTts() async {
+  Future<void> _initializeDetection() async {
+    statusMessage.value = 'Loading AI model...';
+    isOnlineMode.value =
+        (dotenv.env['GOOGLE_VISION_API_KEY'] ?? '').trim().isNotEmpty;
+
+    try {
+      await _tfliteService.init();
+      await _configureTts();
+      await _initializeCamera();
+      statusMessage.value = 'Scanning environment...';
+    } catch (e, stackTrace) {
+      debugPrint('Object detection init error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      statusMessage.value = 'Could not initialize object detection.';
+      isCameraInitialized.value = false;
+    }
+  }
+
+  Future<void> _configureTts() async {
+    await _tts.setSpeechRate(0.45);
     await _tts.setVolume(1.0);
-    await _tts.setSpeechRate(0.5);
-    final isEs = Get.locale?.languageCode == 'es';
-    await _tts.setLanguage(isEs ? 'es-ES' : 'en-US');
-  }
+    await _tts.setPitch(1.0);
 
-  void _watchConnectivity() {
-    Connectivity().onConnectivityChanged.listen((result) {
-      isOnlineMode.value = result != ConnectivityResult.none;
-    });
-    Connectivity().checkConnectivity().then((result) {
-      isOnlineMode.value = result != ConnectivityResult.none;
-    });
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      statusMessage.value = 'Loading AI...';
-      await _tflite.init();
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) { statusMessage.value = 'No camera'; return; }
-      cameraController = CameraController(
-        cameras[0], ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,
-      );
-      await cameraController!.initialize();
-      if (_isDisposed) return;
-      isCameraInitialized.value = true;
-      statusMessage.value = 'Scanning...';
-      cameraController!.startImageStream((frame) {
-        if (!_isProcessing && !_isDisposed) _processFrame(frame);
-      });
-    } catch (e) {
-      statusMessage.value = 'Error: $e';
+    final languageCode = Get.locale?.languageCode ?? 'en';
+    if (languageCode == 'es') {
+      await _tts.setLanguage('es-ES');
+    } else {
+      await _tts.setLanguage('en-US');
     }
   }
 
-  Future<void> _processFrame(CameraImage frame) async {
-    _isProcessing = true;
-    try {
-      List<DetectionResult> results = [];
-      final now = DateTime.now();
+  Future<void> _initializeCamera() async {
+    statusMessage.value = 'Opening camera...';
 
-      if (isOnlineMode.value &&
-          now.difference(_lastOnlineAt).inSeconds >= 5) {
-        _lastOnlineAt = now;
-        final converted = await compute(_toImage, frame);
-        if (converted != null) {
-          final file = File('${Directory.systemTemp.path}/frame.jpg');
-          await file.writeAsBytes(img.encodeJpg(converted, quality: 80));
-          results = await _vision.analyzeImage(file);
-        }
-      }
-
-      if (results.isEmpty) results = await _tflite.analyze(frame);
-      if (!_isDisposed) await _handleResults(results);
-    } finally {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _isProcessing = false;
+    final cameras = await availableCameras();
+    if (cameras.isEmpty) {
+      throw Exception('No cameras available');
     }
+
+    final selectedCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+      orElse: () => cameras.first,
+    );
+
+    final controller = CameraController(
+      selectedCamera,
+      ResolutionPreset.medium,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.yuv420,
+    );
+
+    await controller.initialize();
+    await controller.startImageStream(_processCameraImage);
+
+    cameraController = controller;
+    isCameraInitialized.value = true;
   }
 
-  Future<void> _handleResults(List<DetectionResult> results) async {
-    predictions.assignAll(results);
-    if (results.isEmpty || results.first.confidence < 0.7) {
-      isDangerDetected.value = false;
-      return;
-    }
-    final top = results.first;
-    final isEs = Get.locale?.languageCode == 'es';
-    final text = isEs ? top.labelEs : top.label;
+  Future<void> _processCameraImage(CameraImage image) async {
+    if (_isDisposed || _isProcessingFrame) return;
 
     final now = DateTime.now();
-    if (now.difference(_lastSpokenAt).inSeconds >= 3 || text != _lastSpoken) {
-      _lastSpoken = text;
-      _lastSpokenAt = now;
-      await _tts.speak(text);
+    if (_lastProcessedAt != null &&
+        now.difference(_lastProcessedAt!) < _processingInterval) {
+      return;
     }
 
-    if (top.isDangerous) {
-      isDangerDetected.value = true;
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
-      if (hasVibrator) Vibration.vibrate(pattern: [0, 200, 100, 200, 100, 200]);
-      if (now.difference(_lastLocationAt).inSeconds >= 30) {
-        _lastLocationAt = now;
-        await _location.getCurrentPosition();
+    _isProcessingFrame = true;
+    _lastProcessedAt = now;
+
+    try {
+      final results = await _tfliteService.analyze(image);
+      if (_isDisposed) return;
+      _applyResults(results);
+    } catch (e) {
+      debugPrint('Frame analysis error: $e');
+      if (!_isDisposed) {
+        statusMessage.value = 'Analyzing scene...';
       }
-    } else {
+    } finally {
+      _isProcessingFrame = false;
+    }
+  }
+
+  void _applyResults(List<DetectionResult> results) {
+    final sortedResults = [...results]
+      ..sort((a, b) => b.confidence.compareTo(a.confidence));
+
+    predictions.assignAll(sortedResults);
+
+    if (sortedResults.isEmpty) {
       isDangerDetected.value = false;
+      statusMessage.value = 'Scanning environment...';
+      return;
     }
 
-    if (now.difference(_lastSavedAt).inSeconds >= 10 || top.label != _lastSaved) {
-      _lastSaved = top.label;
-      _lastSavedAt = now;
-      await _history.saveDetection(DetectionRecord(
-        label: top.label,
-        labelEs: top.labelEs,
-        confidence: top.confidence,
-        detectedAt: now,
-        isDangerous: top.isDangerous,
-        userId: _getUserId(),
-        latitude: _location.lastPosition?.latitude,
-        longitude: _location.lastPosition?.longitude,
-      ));
+    final topResult = sortedResults.first;
+    isDangerDetected.value = sortedResults.any((result) => result.isDangerous);
+    statusMessage.value = 'Detected: ${topResult.labelEs}';
+
+    _announceDetection(topResult);
+    _saveDetection(topResult);
+  }
+
+  Future<void> _announceDetection(DetectionResult result) async {
+    final now = DateTime.now();
+    final canRepeatSameLabel = _lastAnnouncementAt == null ||
+        now.difference(_lastAnnouncementAt!) >= _announcementCooldown;
+    final isNewLabel = _lastAnnouncedLabel != result.label;
+
+    if (!isNewLabel && !canRepeatSameLabel) {
+      return;
     }
-  }
 
-  String _getUserId() {
-    try {
-      return Get.find<dynamic>().supabase.auth.currentUser?.id ?? 'anonymous';
-    } catch (_) { return 'anonymous'; }
-  }
+    _lastAnnouncedLabel = result.label;
+    _lastAnnouncementAt = now;
 
-  static img.Image? _toImage(CameraImage frame) {
     try {
-      final w = frame.width, h = frame.height;
-      final result = img.Image(width: w, height: h);
-      final y = frame.planes[0].bytes;
-      final u = frame.planes[1].bytes;
-      final v = frame.planes[2].bytes;
-      final uvRow = frame.planes[1].bytesPerRow;
-      final uvPx = frame.planes[1].bytesPerPixel ?? 1;
-      for (int row = 0; row < h; row++) {
-        for (int col = 0; col < w; col++) {
-          final uvi = uvPx * (col ~/ 2) + uvRow * (row ~/ 2);
-          final yv = y[row * frame.planes[0].bytesPerRow + col];
-          final uv = u[uvi], vv = v[uvi];
-          result.setPixelRgb(col, row,
-            (yv + 1.370705 * (vv - 128)).round().clamp(0, 255),
-            (yv - 0.337633 * (uv - 128) - 0.698001 * (vv - 128)).round().clamp(0, 255),
-            (yv + 1.732446 * (uv - 128)).round().clamp(0, 255),
-          );
+      if (result.isDangerous) {
+        final hasVibrator = await Vibration.hasVibrator() ?? false;
+        if (hasVibrator) {
+          await Vibration.vibrate(duration: 250);
         }
       }
-      return result;
-    } catch (_) { return null; }
+
+      final spokenLabel =
+          Get.locale?.languageCode == 'es' ? result.labelEs : result.label;
+      await _tts.stop();
+      await _tts.speak(spokenLabel);
+    } catch (e) {
+      debugPrint('Announcement error: $e');
+    }
+  }
+
+  Future<void> _saveDetection(DetectionResult result) async {
+    final now = DateTime.now();
+    final withinCooldown = _lastSavedAt != null &&
+        _lastSavedLabel == result.label &&
+        now.difference(_lastSavedAt!) < _saveCooldown;
+
+    if (withinCooldown) {
+      return;
+    }
+
+    _lastSavedAt = now;
+    _lastSavedLabel = result.label;
+
+    try {
+      final position = await _locationService.getCurrentPosition();
+      final authController =
+          Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+
+      final record = DetectionRecord(
+        label: result.label,
+        labelEs: result.labelEs,
+        confidence: result.confidence,
+        detectedAt: now,
+        isDangerous: result.isDangerous,
+        userId: authController?.currentUserId ?? '',
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+      );
+
+      await _historyService.saveDetection(record);
+    } catch (e) {
+      debugPrint('Save detection error: $e');
+    }
   }
 
   @override
   void onClose() {
     _isDisposed = true;
+
+    final controller = cameraController;
+    if (controller != null) {
+      if (controller.value.isStreamingImages) {
+        controller.stopImageStream();
+      }
+      controller.dispose();
+    }
+
     _tts.stop();
-    cameraController?.stopImageStream();
-    cameraController?.dispose();
-    _tflite.dispose();
+    _tfliteService.dispose();
     super.onClose();
   }
 }
