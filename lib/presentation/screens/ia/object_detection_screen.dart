@@ -1,21 +1,25 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:camera/camera.dart';
+
 import '../../controllers/object_detection_controller.dart';
+import '../../widgets/confidence_bar.dart';
+import '../../widgets/danger_badge.dart';
 
 class ObjectDetectionScreen extends StatelessWidget {
   const ObjectDetectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ObjectDetectionController());
+    final controller = Get.isRegistered<ObjectDetectionController>()
+        ? Get.find<ObjectDetectionController>()
+        : Get.put(ObjectDetectionController());
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Spider-Sense Vision"),
+        title: const Text('Spider-Sense Vision'),
         backgroundColor: Colors.red.shade900,
         centerTitle: true,
-        elevation: 0,
       ),
       backgroundColor: Colors.black,
       body: Obx(() {
@@ -38,12 +42,76 @@ class ObjectDetectionScreen extends StatelessWidget {
 
         return Stack(
           children: [
-            // Vista previa de cámara
             Positioned.fill(
               child: CameraPreview(controller.cameraController!),
             ),
-
-            // Panel inferior de resultados
+            Obx(() => controller.isDangerDetected.value
+                ? Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.red, width: 6),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink()),
+            Obx(() => controller.isDangerDetected.value
+                ? const Positioned(top: 20, right: 20, child: DangerBadge())
+                : const SizedBox.shrink()),
+            Obx(() => controller.isOnlineMode.value
+                ? Positioned(
+                    top: 20,
+                    left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.cloud, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'AI Online',
+                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Positioned(
+                    top: 20,
+                    left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.offline_bolt,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'AI Offline',
+                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
@@ -57,114 +125,55 @@ class ObjectDetectionScreen extends StatelessWidget {
                   color: Colors.black.withOpacity(0.85),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.redAccent.withOpacity(0.5),
+                    color: controller.isDangerDetected.value
+                        ? Colors.red
+                        : Colors.redAccent.withOpacity(0.5),
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "SPIDER-SENSE AI",
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                child: Obx(() {
+                  if (controller.predictions.isEmpty) {
+                    return Text(
+                      controller.statusMessage.value,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontStyle: FontStyle.italic,
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    Obx(() {
-                      if (controller.predictions.isEmpty) {
-                        return Text(
-                          controller.statusMessage.value,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        );
-                      }
+                    );
+                  }
 
-                      final top = controller.predictions.first;
-                      // Mostrar en español si el idioma es español
-                      final isSpanish =
-                          Get.locale?.languageCode == 'es';
-                      final displayLabel =
-                          isSpanish ? top.labelEs : top.label;
+                  final top = controller.predictions.first;
+                  final isSpanish = Get.locale?.languageCode == 'es';
+                  final label = isSpanish ? top.labelEs : top.label;
 
-                      return Column(
-                        children: [
-                          Text(
-                            displayLabel.toUpperCase(),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          LinearProgressIndicator(
-                            value: top.confidence,
-                            backgroundColor: Colors.white10,
-                            color: top.confidence > 0.7
-                                ? Colors.greenAccent
-                                : Colors.orangeAccent,
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            "${(top.confidence * 100).toStringAsFixed(1)}% ${'confidence'.tr}",
-                            style: TextStyle(
-                              color: top.confidence > 0.7
-                                  ? Colors.greenAccent
-                                  : Colors.orangeAccent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          // Mostrar otros objetos detectados si hay más
-                          if (controller.predictions.length > 1) ...[
-                            const SizedBox(height: 10),
-                            const Divider(color: Colors.white24),
-                            const SizedBox(height: 5),
-                            ...controller.predictions
-                                .skip(1)
-                                .take(2)
-                                .map((p) {
-                              final label =
-                                  isSpanish ? p.labelEs : p.label;
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 2),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      label,
-                                      style: const TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    Text(
-                                      "${(p.confidence * 100).toStringAsFixed(0)}%",
-                                      style: const TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-                        ],
-                      );
-                    }),
-                  ],
-                ),
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'SPIDER-SENSE AI',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        label.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color:
+                              top.isDangerous ? Colors.redAccent : Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ConfidenceBar(confidence: top.confidence),
+                    ],
+                  );
+                }),
               ),
             ),
           ],
