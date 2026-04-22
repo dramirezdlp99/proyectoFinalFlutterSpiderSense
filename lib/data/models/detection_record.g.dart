@@ -25,13 +25,14 @@ class DetectionRecordAdapter extends TypeAdapter<DetectionRecord> {
       userId: fields[7] as String,
       latitude: fields[4] as double?,
       longitude: fields[5] as double?,
+      synced: fields[8] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, DetectionRecord obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.label)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class DetectionRecordAdapter extends TypeAdapter<DetectionRecord> {
       ..writeByte(6)
       ..write(obj.isDangerous)
       ..writeByte(7)
-      ..write(obj.userId);
+      ..write(obj.userId)
+      ..writeByte(8)
+      ..write(obj.synced);
   }
 
   @override

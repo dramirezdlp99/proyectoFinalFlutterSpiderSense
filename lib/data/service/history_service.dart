@@ -39,6 +39,11 @@ class HistoryService {
         [];
   }
 
+  /// Retorna registros que aún no han sido enviados a Supabase.
+  List<DetectionRecord> getPendingSync() {
+    return _box?.values.where((r) => !r.synced).toList() ?? [];
+  }
+
   Future<void> deleteRecord(DetectionRecord record) async {
     try {
       await record.delete();

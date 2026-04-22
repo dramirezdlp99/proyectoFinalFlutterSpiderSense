@@ -28,6 +28,12 @@ class DetectionRecord extends HiveObject {
   @HiveField(7)
   late String userId;
 
+  /// Nuevo campo — indica si ya fue enviado a Supabase.
+  /// Default false para registros nuevos y para los existentes
+  /// (Hive retorna false automáticamente al leer campos no escritos).
+  @HiveField(8)
+  bool synced = false;
+
   DetectionRecord({
     required this.label,
     required this.labelEs,
@@ -37,5 +43,6 @@ class DetectionRecord extends HiveObject {
     required this.userId,
     this.latitude,
     this.longitude,
+    this.synced = false,
   });
 }
